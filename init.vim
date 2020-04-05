@@ -11,17 +11,22 @@ if dein#load_state('~/.cache/dein')
     " necessary
     call dein#add('~/.cache/dein/repos/github.com/Shougo/dein.vim')
 
-    " here add your plugins
-    call dein#add('Shougo/deoplete.nvim')
+    " add your plugins here
+    call dein#add('Shougo/deoplete.nvim', {'do':':UpdateRemotePlugins'})
     call dein#add('Shougo/neosnippet.vim')
     call dein#add('Shougo/neosnippet-snippets')
     call dein#add('scrooloose/nerdtree')
-    call dein#add('scrooloose/syntastic')
     call dein#add('preservim/nerdcommenter')
-    call dein#add('majutsushi/tagbar')
     call dein#add('altercation/vim-colors-solarized')
     call dein#add('deoplete-plugins/deoplete-jedi')
+    call dein#add('davidhalter/jedi-vim')
     call dein#add('jiangmiao/auto-pairs')
+    call dein#add('tpope/vim-fugitive')
+    call dein#add('Shougo/denite.nvim')
+    call dein#add('tpope/vim-surround')
+    call dein#add('itchyny/lightline.vim')
+    call dein#add('neomake/neomake')
+    call dein#add('terryma/vim-multiple-cursors')
 
     if !has('nvim')
         call dein#add('roxma/nvim-yarp')
@@ -43,8 +48,6 @@ endif
 set colorcolumn=80
 set showmode                    " Display the current mode
 set cursorline                  " Highlight current line
-highlight clear SignColumn      " SignColumn should match background
-highlight clear LineNr          " Current line number row will have same background color in relative mode
 
 set backspace=indent,eol,start  " Backspace for dummies
 set linespace=0                 " No extra spaces between rows
@@ -103,23 +106,19 @@ endif
 cmap Tabe tabe
 
 " set for jedi
-let g:python3_host_prog = '/usr/local/bin/python3'
 
 " set for deoplete, autopair, neosnippet
-let g:AutoPairsMapCR=0
-let g:deoplete#auto_complete_start_length = 1
 let g:deoplete#enable_at_startup = 1
-let g:deoplete#enable_smart_case = 1
-imap <expr><TAB> pumvisible() ? "\<C-n>" : (neosnippet#expandable_or_jumpable() ? "\<Plug>(neosnippet_expand_or_jump)" : "\<TAB>")
-imap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<S-TAB>"
-imap <expr><CR> pumvisible() ? deoplete#close_popup() : "\<CR>\<Plug>AutoPairsReturn"
-
+inoremap <expr><tab> pumvisible() ? "\<c-n>" : "\<tab>"
+autocmd InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
 
 " set for solarized
 if dein#tap('vim-colors-solarized')
     syntax enable
     set background=dark
     colorscheme solarized
+    highlight clear SignColumn      " SignColumn should match background
+    highlight clear LineNr          " Current line number row will have same background color in relative mode
 endif
 
 " set for nerdtree
@@ -137,14 +136,10 @@ if dein#tap('nerdtree')
     autocmd bufenter * if (winnr("$") == 1 && exists("b:NERDTree") && b:NERDTree.isTabTree()) | q | endif
 endif
 
-" set for tagBar
-if dein#tap('tagbar')
-    nnoremap <silent> <C-y> :TagbarToggle<CR>
-endif
-
 " set for nerdcommenter
 if dein#tap('nerdcommenter')
-    " Add spaces after comment delimiters by default
+    " Add spaces after comment delimiters by default, { 'do':
+    " ':UpdateRemotePlugins' }
     let g:NERDSpaceDelims = 1
     " Use compact syntax for prettified multi-line comments
     let g:NERDCompactSexyComs = 1
@@ -160,14 +155,45 @@ if dein#tap('nerdcommenter')
     let g:NERDTrimTrailingWhitespace = 1
 endif
 
-" set for Syntastic
-if dein#tap('syntastic')
-    set statusline+=%#warningmsg#
-    set statusline+=%{SyntasticStatuslineFlag()}
-    set statusline+=%*
-
-    let g:syntastic_always_populate_loc_list = 1
-    let g:syntastic_auto_loc_list = 1
-    let g:syntastic_check_on_open = 1
-    let g:syntastic_check_on_wq = 0
+" set for denite
+if dein#tap('denite')
+    autocmd FileType denite call s:denite_my_settings()
+    function! s:denite_my_settings() abort
+      nnoremap <silent><buffer><expr> <CR>
+      \ denite#do_map('do_action')
+      nnoremap <silent><buffer><expr> d
+      \ denite#do_map('do_action', 'delete')
+      nnoremap <silent><buffer><expr> p
+      \ denite#do_map('do_action', 'preview')
+      nnoremap <silent><buffer><expr> q
+      \ denite#do_map('quit')
+      nnoremap <silent><buffer><expr> i
+      \ denite#do_map('open_filter_buffer')
+      nnoremap <silent><buffer><expr> <Space>
+      \ denite#do_map('toggle_select').'j'
+    endfunction
 endif
+
+" set for lightline
+if dein#tap('lightline')
+    let g:lightline = {'colorscheme': 'solarized'}
+endif
+
+" set for jedi, jedi-vim
+if dein#tap('jedi')
+    " disable autocompletion, cause we use deoplete for completion
+    let g:jedi#completions_enabled = 0
+    " open the go-to function in split, not another buffer
+    let g:jedi#use_splits_not_buffers = "right"
+    let g:python3_host_prog = '/usr/local/bin/python3'
+endif
+
+let g:neomake_python_enabled_makers = ['pylint']
+call neomake#configure#automake('nrwi', 500)
+
+" set for terminal mode
+tnoremap <C-w>h <C-\><C-n><C-w>h
+tnoremap <C-w>j <C-\><C-n><C-w>j
+tnoremap <C-w>k <C-\><C-n><C-w>k
+tnoremap <C-w>l <C-\><C-n><C-w>l
+autocmd BufEnter term://* startinsert
